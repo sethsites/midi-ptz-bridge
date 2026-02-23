@@ -3,15 +3,15 @@
 Date: 2026-02-23
 
 ## Summary
-A native macOS status bar app that listens to CoreMIDI notes from multiple named sources and translates them into vendor-specific PTZ camera HTTP commands. The menu bar flashes green on success and red on failure, shows the last 5 events, and provides a configuration window for MIDI sources, cameras, rule-based mappings, and commands. Activity is logged to a rotating log file.
+A native macOS status bar app that listens to CoreMIDI notes from multiple selected sources and translates them into PTZOptics HTTP commands. The menu bar flashes green on success and red on failure, shows the last 5 events, and provides a configuration window for MIDI sources, cameras, rule-based mappings, and commands. Activity is logged to a rotating log file.
 
 ## Goals
 - Listen to multiple CoreMIDI sources (by name).
-- Map MIDI note + on/off + velocity conditions to PTZ HTTP commands via simple rules.
-- Configure PTZ cameras (name, IP, username, password) stored in app config.
+- Map MIDI note + on/off + velocity conditions to PTZOptics actions via simple rules.
+- Configure PTZ cameras (name, protocol, host, port, username, password) stored in app config.
 - Show activity in the menu bar with success/failure flashes.
 - Maintain a persistent log file with size cap and rotate.
-- Provide a configuration UI for all settings.
+- Provide a configuration UI for all settings with detected MIDI sources and refresh.
 
 ## Non-Goals
 - ONVIF abstraction or universal PTZ compatibility.
@@ -22,32 +22,34 @@ A native macOS status bar app that listens to CoreMIDI notes from multiple named
 - **Status Bar App**: SwiftUI + AppKit `NSStatusItem` for the menu bar icon and menu.
 - **CoreMIDI Service**: Enumerates sources and subscribes to multiple configured sources.
 - **Rule Engine**: Matches incoming MIDI events to configured rules and resolves commands.
-- **HTTP Client**: Sends vendor-specific HTTP requests with basic auth to the PTZ camera and retries (3).
+- **PTZ Action Catalog**: Maps a small set of PTZOptics actions (start with `preset_recall`) to URL templates and required parameters.
+- **HTTP Client**: Sends PTZOptics HTTP requests, embedding credentials in the URL when set, and retries (3).
 - **Logging**: Append-only log file with rotation, plus a small in-memory ring buffer for last 5 items.
 
 ## Data Model
-- **Camera**: `id`, `name`, `ip`, `username`, `password`
-- **MidiSource**: `name`
+- **Camera**: `id`, `name`, `protocol`, `host`, `port`, `username`, `password`
+- **MidiSource**: `name` (selected from detected sources)
 - **Rule**: `note`, `onOff`, `velocityCondition` (exact or threshold), `cameraId`, `commandTemplateId`
-- **CommandTemplate**: `method`, `path`, optional `body`, optional `headers`
+- **CommandTemplate**: `name`, `action`, `params` (e.g., preset number)
 - **LogEvent**: timestamp, type (MIDI/HTTP), status (ok/fail), summary, details
 
 ## Data Flow
 1. CoreMIDI receives a MIDI event from any configured source.
 2. Rule engine validates event and matches rules by note + on/off + velocity condition.
 3. Rule engine resolves target camera and command template.
-4. HTTP client builds request and sends to camera (up to 3 retries).
-5. Success/failure triggers green/red flash on the status bar.
-6. Log entry is written to the rotating log and last-5 buffer.
-7. Menu bar displays last 5 events with timestamps.
+4. PTZ action layer builds URL for `preset_recall` using the command params.
+5. HTTP client builds request and sends to camera (up to 3 retries).
+6. Success/failure triggers green/red flash on the status bar.
+7. Log entry is written to the rotating log and last-5 buffer.
+8. Menu bar displays last 5 events with timestamps.
 
 ## UI/UX
 - **Menu bar icon**: flashes green for success, red for failure.
 - **Menu list**: last 5 events with timestamp and short summary.
 - **Configure button**: opens SwiftUI window with tabs/sections:
-  - MIDI source selection (multiple by name)
+  - MIDI source selection (detected list with refresh)
   - Camera list (CRUD)
-  - Command templates (CRUD)
+  - Command templates (CRUD, action-based)
   - Rules/mappings (CRUD)
   - Test camera action
 
@@ -61,5 +63,4 @@ A native macOS status bar app that listens to CoreMIDI notes from multiple named
 - Manual integration using a mock PTZ endpoint.
 
 ## Open Questions
-- Specific vendor HTTP command set and example templates.
 - Log size cap and rotation strategy (e.g., 10 MB x 3 files).
