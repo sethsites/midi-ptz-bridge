@@ -39,4 +39,11 @@ final class MidiListenerTests: XCTestCase {
         XCTAssertEqual(events[0].onOff, .on)
         XCTAssertEqual(events[1].onOff, .off)
     }
+
+    func testAutoReconnectKeepsSelectedSources() {
+        let source = CoreMidiSource()
+        source.connectSelectedSources(["Bus A"])
+        source.handleSystemChange()
+        XCTAssertTrue(source.connectedSourceNames.contains("Bus A"))
+    }
 }
