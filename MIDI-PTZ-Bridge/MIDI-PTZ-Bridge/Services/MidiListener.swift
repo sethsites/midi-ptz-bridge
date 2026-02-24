@@ -55,5 +55,32 @@ final class CoreMidiSource: MidiEventSource {
         connectedSourceNames = Set(names)
     }
 
+    static func parse(bytes: [UInt8], sourceName: String = "") -> [MidiEvent] {
+        guard bytes.count >= 3 else { return [] }
+        var events: [MidiEvent] = []
+        events.reserveCapacity(bytes.count / 3)
+
+        var index = 0
+        while index + 2 < bytes.count {
+            let status = bytes[index] & 0xF0
+            let note = Int(bytes[index + 1])
+            let velocity = Int(bytes[index + 2])
+
+            switch status {
+            case 0x90:
+                let onOff: MidiOnOff = velocity == 0 ? .off : .on
+                events.append(MidiEvent(note: note, velocity: velocity, onOff: onOff, sourceName: sourceName))
+            case 0x80:
+                events.append(MidiEvent(note: note, velocity: velocity, onOff: .off, sourceName: sourceName))
+            default:
+                break
+            }
+
+            index += 3
+        }
+
+        return events
+    }
+
     nonisolated deinit {}
 }

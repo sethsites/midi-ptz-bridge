@@ -32,4 +32,11 @@ final class MidiListenerTests: XCTestCase {
         source.connectSelectedSources(["Bus A"])
         XCTAssertTrue(source.connectedSourceNames.contains("Bus A"))
     }
+
+    func testParsesNoteOnAndOff() {
+        let events = CoreMidiSource.parse(bytes: [0x90, 60, 100, 0x80, 60, 0])
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events[0].onOff, .on)
+        XCTAssertEqual(events[1].onOff, .off)
+    }
 }
