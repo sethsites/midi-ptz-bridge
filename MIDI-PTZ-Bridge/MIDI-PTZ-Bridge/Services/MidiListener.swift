@@ -41,12 +41,18 @@ final class MidiListener {
 }
 
 final class CoreMidiSource: MidiEventSource {
+    private(set) var connectedSourceNames: Set<String> = []
+
     func start(selectedSources: [String], handler: @escaping (MidiEvent) -> Void) throws {
         // CoreMIDI wiring will be added in a later task.
     }
 
     func stop() {
         // CoreMIDI teardown will be added in a later task.
+    }
+
+    func connectSelectedSources(_ names: [String]) {
+        connectedSourceNames = Set(names)
     }
 
     nonisolated deinit {}

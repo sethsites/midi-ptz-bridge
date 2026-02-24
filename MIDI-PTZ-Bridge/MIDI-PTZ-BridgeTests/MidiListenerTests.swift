@@ -26,4 +26,10 @@ final class MidiListenerTests: XCTestCase {
         try? listener.start { _ in }
         XCTAssertEqual(source.lastSelected, ["Bus A", "Bus B"])
     }
+
+    func testCoreMidiSourceTracksSelectedSources() {
+        let source = CoreMidiSource()
+        source.connectSelectedSources(["Bus A"])
+        XCTAssertTrue(source.connectedSourceNames.contains("Bus A"))
+    }
 }
