@@ -3,14 +3,21 @@ import AppKit
 final class StatusBarController {
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
-    private let defaultTintColor: NSColor? = nil
+    private let defaultTintColor: NSColor? = .systemBlue
     private var onConfigure: (() -> Void)?
+    private var redImage: NSImage? = nil
+    private var greenImage: NSImage? = nil
+    private var baseImage: NSImage? = nil
+    
 
     init(statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)) {
         self.statusItem = statusItem
+        self.redImage = coloredCircleFillImage(color: NSColor.systemRed, size: NSMakeSize(20, 20))
+        self.greenImage = coloredCircleFillImage(color: NSColor.systemGreen, size: NSMakeSize(20, 20))
+        self.baseImage = coloredCircleFillImage(color: NSColor.systemBlue, size: NSMakeSize(20, 20))
+        
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "MIDI PTZ")
-            button.contentTintColor = defaultTintColor
+            button.image = self.baseImage
         }
         statusItem.menu = menu
     }
@@ -52,12 +59,29 @@ final class StatusBarController {
 
     func flash(status: LogEventStatus) {
         guard let button = statusItem.button else { return }
-        let flashColor: NSColor = (status == .ok) ? .systemGreen : .systemRed
-        button.contentTintColor = flashColor
-
+        let flashImage: NSImage? = (status == .ok) ? greenImage : redImage
+        button.image = flashImage
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak button] in
-            button?.contentTintColor = self.defaultTintColor
+            button?.image = self.baseImage
         }
+    }
+    
+    func coloredCircleFillImage(color: NSColor, size: NSSize) -> NSImage? {
+        let symbolConfiguration = NSImage.SymbolConfiguration(paletteColors: [color])
+        
+        guard let baseImage = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "MIDI PTZ") else {
+            return nil
+        }
+        
+        let coloredImage = baseImage.withSymbolConfiguration(symbolConfiguration)
+        
+        if let sizedImage = coloredImage {
+            sizedImage.size = size
+            return sizedImage
+        }
+        
+        return coloredImage
     }
 
     @objc private func openSettings() {

@@ -1,85 +1,75 @@
 import Foundation
 
 struct AppConfig: Codable, Equatable {
-    var midiSource: MidiSource
+    var midiSources: [String]
     var cameras: [Camera]
     var commandTemplates: [CommandTemplate]
-    var mappings: [Mapping]
+    var rules: [Rule]
 
     static let empty = AppConfig(
-        midiSource: .byName(""),
+        midiSources: [],
         cameras: [],
         commandTemplates: [],
-        mappings: []
+        rules: []
     )
 }
 
 struct Camera: Codable, Equatable, Identifiable {
     let id: UUID
     var name: String
-    var ip: String
-    var username: String
-    var password: String
+    var scheme: CameraScheme
+    var host: String
+    var port: Int
+    var username: String?
+    var password: String?
 }
 
-enum MidiSource: Codable, Equatable {
-    case byName(String)
-    case byDevicePort(device: String, port: String)
+enum CameraScheme: String, Codable, Equatable {
+    case http
+    case https
+}
+
+struct CommandTemplate: Codable, Equatable, Identifiable {
+    let id: UUID
+    var name: String
+    var action: PTZAction
+    var params: CommandParams
+}
+
+enum PTZAction: String, Codable, Equatable {
+    case presetRecall
+}
+
+enum CommandParams: Codable, Equatable {
+    case presetRecall(number: Int)
 
     private enum CodingKeys: String, CodingKey {
         case type
-        case name
-        case device
-        case port
+        case number
     }
 
-    private enum SourceType: String, Codable {
-        case byName
-        case byDevicePort
+    private enum ParamsType: String, Codable {
+        case presetRecall
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(SourceType.self, forKey: .type)
+        let type = try container.decode(ParamsType.self, forKey: .type)
         switch type {
-        case .byName:
-            let name = try container.decode(String.self, forKey: .name)
-            self = .byName(name)
-        case .byDevicePort:
-            let device = try container.decode(String.self, forKey: .device)
-            let port = try container.decode(String.self, forKey: .port)
-            self = .byDevicePort(device: device, port: port)
+        case .presetRecall:
+            let number = try container.decode(Int.self, forKey: .number)
+            self = .presetRecall(number: number)
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .byName(let name):
-            try container.encode(SourceType.byName, forKey: .type)
-            try container.encode(name, forKey: .name)
-        case .byDevicePort(let device, let port):
-            try container.encode(SourceType.byDevicePort, forKey: .type)
-            try container.encode(device, forKey: .device)
-            try container.encode(port, forKey: .port)
+        case .presetRecall(let number):
+            try container.encode(ParamsType.presetRecall, forKey: .type)
+            try container.encode(number, forKey: .number)
         }
     }
-}
-
-enum HTTPMethod: String, Codable {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-}
-
-struct CommandTemplate: Codable, Equatable, Identifiable {
-    let id: UUID
-    var name: String
-    var method: HTTPMethod
-    var path: String
-    var headers: [String: String]
-    var body: String?
 }
 
 enum MidiOnOff: String, Codable, Equatable {
@@ -87,11 +77,71 @@ enum MidiOnOff: String, Codable, Equatable {
     case off
 }
 
-struct Mapping: Codable, Equatable, Identifiable {
+enum VelocityCondition: Codable, Equatable {
+    case exact(Int)
+    case min(Int)
+    case max(Int)
+    case range(Int, Int)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case value
+        case min
+        case max
+    }
+
+    private enum ConditionType: String, Codable {
+        case exact
+        case min
+        case max
+        case range
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(ConditionType.self, forKey: .type)
+        switch type {
+        case .exact:
+            let value = try container.decode(Int.self, forKey: .value)
+            self = .exact(value)
+        case .min:
+            let value = try container.decode(Int.self, forKey: .value)
+            self = .min(value)
+        case .max:
+            let value = try container.decode(Int.self, forKey: .value)
+            self = .max(value)
+        case .range:
+            let minValue = try container.decode(Int.self, forKey: .min)
+            let maxValue = try container.decode(Int.self, forKey: .max)
+            self = .range(minValue, maxValue)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .exact(let value):
+            try container.encode(ConditionType.exact, forKey: .type)
+            try container.encode(value, forKey: .value)
+        case .min(let value):
+            try container.encode(ConditionType.min, forKey: .type)
+            try container.encode(value, forKey: .value)
+        case .max(let value):
+            try container.encode(ConditionType.max, forKey: .type)
+            try container.encode(value, forKey: .value)
+        case .range(let minValue, let maxValue):
+            try container.encode(ConditionType.range, forKey: .type)
+            try container.encode(minValue, forKey: .min)
+            try container.encode(maxValue, forKey: .max)
+        }
+    }
+}
+
+struct Rule: Codable, Equatable, Identifiable {
     let id: UUID
     var note: Int
     var onOff: MidiOnOff
-    var velocity: Int
+    var velocity: VelocityCondition
     var cameraId: UUID?
     var commandTemplateId: UUID?
 }

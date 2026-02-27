@@ -17,15 +17,37 @@ struct MappingRouter {
     }
 
     func resolve(_ event: MidiEvent) -> ResolvedAction? {
-        guard let mapping = config.mappings.first(where: { $0.note == event.note && $0.onOff == event.onOff && $0.velocity == event.velocity }) else {
-            return nil
+        resolveAll(for: event).first
+    }
+
+    func resolveAll(for event: MidiEvent) -> [ResolvedAction] {
+        config.rules.compactMap { rule in
+            guard matches(rule: rule, event: event) else { return nil }
+            guard let cameraId = rule.cameraId, let commandId = rule.commandTemplateId else {
+                return nil
+            }
+            guard let camera = camerasById[cameraId], let command = commandsById[commandId] else {
+                return nil
+            }
+            return ResolvedAction(camera: camera, command: command)
         }
-        guard let cameraId = mapping.cameraId, let commandId = mapping.commandTemplateId else {
-            return nil
+    }
+
+    private func matches(rule: Rule, event: MidiEvent) -> Bool {
+        guard rule.note == event.note, rule.onOff == event.onOff else { return false }
+        return velocityMatches(rule.velocity, velocity: event.velocity)
+    }
+
+    private func velocityMatches(_ condition: VelocityCondition, velocity: Int) -> Bool {
+        switch condition {
+        case .exact(let value):
+            return velocity == value
+        case .min(let value):
+            return velocity >= value
+        case .max(let value):
+            return velocity <= value
+        case .range(let minValue, let maxValue):
+            return velocity >= minValue && velocity <= maxValue
         }
-        guard let camera = camerasById[cameraId], let command = commandsById[commandId] else {
-            return nil
-        }
-        return ResolvedAction(camera: camera, command: command)
     }
 }
