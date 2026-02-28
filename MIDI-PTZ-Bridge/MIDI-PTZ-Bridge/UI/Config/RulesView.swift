@@ -3,6 +3,7 @@ import SwiftUI
 struct RulesView: View {
     @ObservedObject var viewModel: ConfigViewModel
 
+    @State private var id: UUID?
     @State private var note = "60"
     @State private var onOff: MidiOnOff = .on
     @State private var velocityType: VelocityType = .exact
@@ -11,6 +12,7 @@ struct RulesView: View {
     @State private var velocityMax = "127"
     @State private var selectedCamera: UUID?
     @State private var selectedCommand: UUID?
+    @State private var buttonText = "Add"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,43 +21,53 @@ struct RulesView: View {
                 .bold()
 
             HStack {
-                TextField("Note", text: $note)
-                    .frame(width: 60)
+                LabeledContent("Note Number") {
+                    TextField("Note", text: $note)
+                        .frame(width: 100)
+                }
+                Spacer()
                 Picker("On/Off", selection: $onOff) {
                     Text("On").tag(MidiOnOff.on)
                     Text("Off").tag(MidiOnOff.off)
                 }
-                .frame(width: 90)
-
+                .frame(width: 120)
+                Spacer()
                 Picker("Velocity", selection: $velocityType) {
                     Text("Exact").tag(VelocityType.exact)
                     Text("Min").tag(VelocityType.min)
                     Text("Max").tag(VelocityType.max)
                     Text("Range").tag(VelocityType.range)
                 }
-                .frame(width: 110)
-
+                .frame(width: 150)
+                
                 velocityInputs
-
+            }
+            HStack {
                 Picker("Camera", selection: $selectedCamera) {
                     Text("None").tag(UUID?.none)
                     ForEach(viewModel.config.cameras) { camera in
                         Text(camera.name).tag(Optional(camera.id))
                     }
                 }
-                .frame(width: 160)
-
+                .frame(width: 240)
+                Spacer()
                 Picker("Command", selection: $selectedCommand) {
                     Text("None").tag(UUID?.none)
                     ForEach(viewModel.config.commandTemplates) { command in
                         Text(command.name).tag(Optional(command.id))
                     }
                 }
-                .frame(width: 160)
-
-                Button("Add") {
+                .frame(width: 240)
+                Spacer()
+                Button(buttonText) {
                     addRule()
                 }
+                .tint(.blue)
+                .disabled(Int(note) == nil)
+                Button("Reset", role: .destructive) {
+                    resetForm()
+                }
+                .tint(.red)
                 .disabled(Int(note) == nil)
             }
 
@@ -67,8 +79,17 @@ struct RulesView: View {
                         Text(velocityDescription(rule.velocity))
                             .foregroundStyle(.secondary)
                     }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            viewModel.removeRules(rule)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button { edit(rule) } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                    }
                 }
-                .onDelete(perform: viewModel.removeRules)
             }
         }
     }
@@ -102,7 +123,48 @@ struct RulesView: View {
             velocity = .range(Int(velocityMin) ?? 0, Int(velocityMax) ?? 127)
         }
 
-        viewModel.addRule(note: noteValue, onOff: onOff, velocity: velocity, cameraId: selectedCamera, commandTemplateId: selectedCommand)
+        if (id == nil) {
+            viewModel.addRule(note: noteValue, onOff: onOff, velocity: velocity, cameraId: selectedCamera, commandTemplateId: selectedCommand)
+        } else {
+            let tempRule = Rule(id: id!, note: noteValue, onOff: onOff, velocity: velocity, cameraId: selectedCamera, commandTemplateId: selectedCommand)
+            viewModel.updateRule(tempRule)
+        }
+        resetForm()
+    }
+    
+    private func resetForm() {
+        id = nil
+        note = "60"
+        onOff = .on
+        velocityType = .exact
+        velocityValue = "100"
+        selectedCamera = nil
+        selectedCommand = nil
+        buttonText = "Add"
+    }
+    
+    private func edit(_ rule: Rule) {
+        id = rule.id
+        note = "\(rule.note)"
+        onOff = rule.onOff == .on ? .on : .off
+        switch rule.velocity {
+        case .exact(let value):
+            velocityType = .exact
+            velocityValue = "\(value)"
+        case .min(let value):
+            velocityType = .min
+            velocityValue = "\(value)"
+        case .max(let value):
+            velocityType = .max
+            velocityValue = "\(value)"
+        case .range(let minValue, let maxValue):
+            velocityType = .range
+            velocityMin = "\(minValue)"
+            velocityMax = "\(maxValue)"
+        }
+        selectedCamera = rule.cameraId
+        selectedCommand = rule.commandTemplateId
+        buttonText = "Save"
     }
 
     private func velocityDescription(_ velocity: VelocityCondition) -> String {

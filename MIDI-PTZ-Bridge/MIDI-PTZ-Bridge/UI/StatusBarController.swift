@@ -34,6 +34,10 @@ final class StatusBarController {
         let configureItem = NSMenuItem(title: "Open Settings", action: #selector(openSettings), keyEquivalent: ",")
         configureItem.target = self
         menu.addItem(configureItem)
+        
+        let exitApp = NSMenuItem(title: "Quit", action: #selector(exitApplication), keyEquivalent: "q")
+        exitApp.target = self
+        menu.addItem(exitApp)
     }
 
     static func menuItems(for events: [LogEvent]) -> [NSMenuItem] {
@@ -86,5 +90,9 @@ final class StatusBarController {
 
     @objc private func openSettings() {
         onConfigure?()
+    }
+    
+    @objc private func exitApplication() {
+        NSApplication.shared.terminate(nil)
     }
 }
