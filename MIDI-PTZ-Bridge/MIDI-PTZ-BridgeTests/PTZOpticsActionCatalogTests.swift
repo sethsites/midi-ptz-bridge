@@ -7,7 +7,7 @@ final class PTZOpticsActionCatalogTests: XCTestCase {
             for: .presetRecall,
             params: .presetRecall(number: 3)
         )
-        XCTAssertEqual(request.path, "/cgi-bin/ptz.cgi?command=preset&action=call&index=3")
+        XCTAssertEqual(request.path, "/cgi-bin/ptzctrl.cgi?ptzcmd&poscall&3")
         XCTAssertEqual(request.method, "GET")
     }
 }
