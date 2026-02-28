@@ -61,9 +61,24 @@ final class ConfigViewModel: ObservableObject {
         config.cameras.append(camera)
         save()
     }
+    
+    func updateCamera(_ camera: Camera) {
+        for i in 0..<config.cameras.count {
+            if config.cameras[i].id == camera.id {
+                config.cameras[i] = camera
+                break
+            }
+        }
+        save()
+    }
 
     func removeCameras(at offsets: IndexSet) {
         config.cameras.remove(atOffsets: offsets)
+        save()
+    }
+    
+    func removeCamera(_ id: UUID) {
+        config.cameras.removeAll { $0.id == id }
         save()
     }
 
@@ -72,9 +87,24 @@ final class ConfigViewModel: ObservableObject {
         config.commandTemplates.append(template)
         save()
     }
+    
+    func updateCommandTemplate(_ template: CommandTemplate) {
+        for i in 0..<config.commandTemplates.count {
+            if config.commandTemplates[i].id == template.id {
+                config.commandTemplates[i] = template
+                break
+            }
+        }
+        save()
+    }
 
     func removeCommandTemplates(at offsets: IndexSet) {
         config.commandTemplates.remove(atOffsets: offsets)
+        save()
+    }
+    
+    func removeCommandTemplate(_ id: UUID) {
+        config.commandTemplates.removeAll { $0.id == id }
         save()
     }
 

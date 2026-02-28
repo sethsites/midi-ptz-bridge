@@ -12,7 +12,7 @@ struct RulesView: View {
     @State private var velocityMax = "127"
     @State private var selectedCamera: UUID?
     @State private var selectedCommand: UUID?
-    @State private var buttonText = "Add Rule"
+    @State private var buttonText = "Add"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -21,14 +21,17 @@ struct RulesView: View {
                 .bold()
 
             HStack {
-                TextField("Note", text: $note)
-                    .frame(width: 100)
+                LabeledContent("Note Number") {
+                    TextField("Note", text: $note)
+                        .frame(width: 100)
+                }
+                Spacer()
                 Picker("On/Off", selection: $onOff) {
                     Text("On").tag(MidiOnOff.on)
                     Text("Off").tag(MidiOnOff.off)
                 }
                 .frame(width: 120)
-                
+                Spacer()
                 Picker("Velocity", selection: $velocityType) {
                     Text("Exact").tag(VelocityType.exact)
                     Text("Min").tag(VelocityType.min)
@@ -47,7 +50,7 @@ struct RulesView: View {
                     }
                 }
                 .frame(width: 240)
-
+                Spacer()
                 Picker("Command", selection: $selectedCommand) {
                     Text("None").tag(UUID?.none)
                     ForEach(viewModel.config.commandTemplates) { command in
@@ -55,14 +58,16 @@ struct RulesView: View {
                     }
                 }
                 .frame(width: 240)
-
+                Spacer()
                 Button(buttonText) {
                     addRule()
                 }
+                .tint(.blue)
                 .disabled(Int(note) == nil)
                 Button("Reset", role: .destructive) {
                     resetForm()
                 }
+                .tint(.red)
                 .disabled(Int(note) == nil)
             }
 
@@ -135,7 +140,7 @@ struct RulesView: View {
         velocityValue = "100"
         selectedCamera = nil
         selectedCommand = nil
-        buttonText = "Add Rule"
+        buttonText = "Add"
     }
     
     private func edit(_ rule: Rule) {
@@ -159,7 +164,7 @@ struct RulesView: View {
         }
         selectedCamera = rule.cameraId
         selectedCommand = rule.commandTemplateId
-        buttonText = "Save Rule"
+        buttonText = "Save"
     }
 
     private func velocityDescription(_ velocity: VelocityCondition) -> String {
