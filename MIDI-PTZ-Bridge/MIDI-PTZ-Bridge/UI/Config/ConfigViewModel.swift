@@ -83,9 +83,25 @@ final class ConfigViewModel: ObservableObject {
         config.rules.append(rule)
         save()
     }
+    
+    func updateRule(_ rule: Rule) {
+        for i in 0..<config.rules.count {
+            if config.rules[i].id == rule.id {
+                config.rules[i] = rule
+                break
+            }
+        }
+        save()
+    }
 
-    func removeRules(at offsets: IndexSet) {
-        config.rules.remove(atOffsets: offsets)
+    func removeRules(_ rule: Rule) {
+        for i in 0..<config.rules.count {
+            if config.rules[i].id == rule.id {
+                config.rules.remove(at: i)
+                break
+            }
+        }
+        
         save()
     }
 }
