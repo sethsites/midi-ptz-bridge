@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 defer: false
             )
             window.title = "MIDI PTZ Bridge"
+            window.isReleasedWhenClosed = false
             window.center()
             window.contentView = NSHostingView(rootView: ContentView())
             settingsWindow = window
